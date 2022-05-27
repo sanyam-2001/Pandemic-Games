@@ -15,8 +15,7 @@ const handleTTTMove = require('./Sockets/GameSockets/TTT/handleTTTMove');
 const disconnectTTT = require('./Sockets/GameSockets/TTT/disconnectTTT');
 const disconnectShazam = require('./Sockets/GameSockets/shazam/disconnectShazam')
 
-const axios = require('axios').default;
-const shazamModel = require('./Models/shazamModel');
+
 
 
 //DB Connection
