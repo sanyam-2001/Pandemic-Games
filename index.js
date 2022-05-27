@@ -75,22 +75,22 @@ io.on('connection', (socket) => {
         socket.on('returnToRoomFromTTT', () => io.in(roomID).emit('returnToRoomFromTTT'))
     });
 
-    socket.on('userJoinedPsych', ({users, roomID, username})=>{
+    socket.on('userJoinedPsych', ({ users, roomID, username }) => {
         socket.join(roomID);
         console.log(`${socket.id} Joined Psych`);
         socket.to(roomID).emit('userJoinedPsych', { users, username });
         socket.on('chatMessage', (payload) => io.in(roomID).emit('chatMessage', payload));
-        socket.on('gameInitialized', ()=>io.in(roomID).emit('gameInitialized'));
-        socket.on('roundStart', ()=>{
+        socket.on('gameInitialized', () => io.in(roomID).emit('gameInitialized'));
+        socket.on('roundStart', () => {
             psychRoundStart(io, roomID);
         });
-        socket.on('roundGuess', (payload)=>{
+        socket.on('roundGuess', (payload) => {
             psychRoundGuess(io, payload.gameState, payload.username, payload.value, roomID);
         });
-        socket.on('psychRoundvote', (payload)=>{
+        socket.on('psychRoundvote', (payload) => {
             psychRoundVote(io, payload, roomID);
         });
-        socket.on('disconnect', ()=>{
+        socket.on('disconnect', () => {
             handleDisconnect(io, socket, roomID, username);
         });
     });
