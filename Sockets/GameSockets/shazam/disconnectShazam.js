@@ -4,7 +4,6 @@ const disconnectShazam = async (username, roomID, socket, io) => {
     try {
         const room = await shazamModel.findOne({ roomID })
         if (room) {
-
             const newUserList = room.users.filter(user => user.username !== username);
             if (username === room.adminUsername) {
                 let hasAdmin = false;

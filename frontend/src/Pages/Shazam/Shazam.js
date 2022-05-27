@@ -149,12 +149,15 @@ const Shazam = (props) => {
         }
 
     }, [isAdmin, socket, songList])
+
     useEffect(() => {
-        if (socket)
+        if (socket) {
             socket.on('returnToRoomFromleaveShazam', () => {
                 socket.disconnect();
                 setRedirect(true);
             })
+        }
+
     }, [socket])
 
     useEffect(() => {
