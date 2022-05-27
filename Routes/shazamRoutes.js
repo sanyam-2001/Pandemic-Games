@@ -30,12 +30,17 @@ router.post('/joinShazam/:roomID', async (req, res) => {
     else
         return res.json({ code: 500, errCode: 500, message: 'Internal Server Error!' });
 });
-router.get('/getSongList', (req, res) => {
-    axios.get('https://apg-saavn-api.herokuapp.com/playlist/?q=https://www.jiosaavn.com/s/playlist/cafd605a5d8835b5ca99d063d892a00d/pandemic_games/9oZHUTy3BCVieSJqt9HmOQ__')
-        .then(function (response) {
-            const songList = response.data.songs;
-            return res.json({ code: 200, errCode: null, songList: songList });
-        })
+router.get('/getSongList', async (req, res) => {
+    try {
+        const response = await axios.get('https://jio-api-kishan.herokuapp.com//playlist/?query=https://www.jiosaavn.com/s/playlist/cafd605a5d8835b5ca99d063d892a00d/pandemic_games/9oZHUTy3BCVieSJqt9HmOQ__')
+        const songList = await response.data.songs;
+        return res.json({ code: 200, errCode: null, songList: songList });
+    }
+    catch (err) {
+
+        res.status(400).json({ error: err });
+    }
+
 })
 router.post('/updateShazamScore/:roomID', (req, res) => {
     let username = req.body.username;
@@ -44,7 +49,7 @@ router.post('/updateShazamScore/:roomID', (req, res) => {
         "roomID": req.params.roomID,
         "users.username": username,
     }, {
-        "$set": {
+        "$inc": {
             "users.$.score": score
         }
     }, { new: true }, function (error, success) {

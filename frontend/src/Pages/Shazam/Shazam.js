@@ -41,29 +41,35 @@ const Shazam = (props) => {
     const gameOverRef = useRef(null);
 
     useEffect(() => {
-        const socket = SocketIOClient("/");
-        setSocket(socket);
-        setUsername(props.location.state.username);
-        setIsAdmin(props.location.state.isAdmin);
-        setRoomID(props.location.state.roomID);
-        const payload = {
-            username: props.location.state.username,
-            isAdmin: props.location.state.isAdmin,
-            score: 0
-        }
-        POST(`/joinShazam/${props.location.state.roomID}`, payload)
-            .then(res => {
+        async function fetchdata() {
+            try {
+                const socket = await SocketIOClient("/");
+                await setSocket(socket);
+                setUsername(props.location.state.username);
+                setIsAdmin(props.location.state.isAdmin);
+                setRoomID(props.location.state.roomID);
+                const payload = {
+                    username: props.location.state.username,
+                    isAdmin: props.location.state.isAdmin,
+                    score: 0
+                }
+                const res = await POST(`/joinShazam/${props.location.state.roomID}`, payload);
                 console.log(res);
                 setRoom(res.room);
                 setUsers(res.room.users);
                 socket.emit('userJoinedShazam', { users: res.room.users, username: props.location.state.username, roomID: props.location.state.roomID })
-            })
 
-        GET('/getSongList')
-            .then(res => {
-                console.log(res.songList, 'UseEffect');
-                setSongList(res.songList);
-            })
+                const res1 = await GET('/getSongList');
+                console.log(res1.songList, 'UseEffect');
+                setSongList(res1.songList);
+
+            }
+            catch (err) {
+                console.log(err);
+            }
+        }
+        fetchdata();
+
     }, [props.location.state.roomID, props.location.state.isAdmin, props.location.state.username,]);
     useEffect(() => {
         if (socket) {
@@ -72,13 +78,18 @@ const Shazam = (props) => {
                 setUsers(users);
             });
             socket.on('ShazamChatMessage', (payload) => {
+                console.log(payload);
                 setMessages(prev => [...prev, payload])
                 if (payload.userCorrectGuess === true)
                     setNumberOfCorrectGuesses(prev => { return prev + 1 });
             });
+            socket.on('scoreUpdate', (payload) => {
+                setUsers(payload);
+            })
         }
     }, [socket])
     useEffect(() => {
+        console.log(songName);
         if (socket) {
             socket.on('ShazamStart', (number) => {
                 if (songList[number]) {
@@ -169,6 +180,7 @@ const Shazam = (props) => {
     }
     const sendChatMessage = async () => {
         if (!text) return;
+        console.log(songName + " " + text);
         if (Equality(songName, text)) {
             setHasGuessed(true);
             socket.emit('ShazamChatMessage', { username: username, message: text, guess: true, afterGuess: false, userCorrectGuess: true })
@@ -180,6 +192,7 @@ const Shazam = (props) => {
                     console.log(res);
                     setRoom(res.room);
                     setUsers(res.room.users);
+                    socket.emit('shazamScoreUpdate', res.room.users);
                 })
         }
         else {

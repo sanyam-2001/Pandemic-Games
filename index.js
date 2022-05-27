@@ -85,6 +85,9 @@ io.on('connection', (socket) => {
         socket.on('ShazamChatMessageAfterGuess', (payload) => {
             io.in(roomID).emit('ShazamChatMessageAfterGuess', payload)
         });
+        socket.on('shazamScoreUpdate', (payload) => {
+            io.in(roomID).emit('scoreUpdate', payload);
+        })
         socket.on('ShazamStart', (songListLength) => {
             let number = Math.floor(Math.random() * (songListLength));
             console.log(number);
@@ -115,11 +118,11 @@ app.get('/test', (req, res) => {
 app.use('/', roomRoutes);
 app.use('/', tictactoeRoutes);
 app.use('/', shazamRoutes);
-app.use(express.static(path.join(__dirname, 'frontend', 'build')));
+// app.use(express.static(path.join(__dirname, 'frontend', 'build')));
 
-app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'));
-});
+// app.get('*', (req, res) => {
+//     res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'));
+// });
 
 server.listen(PORT, () => {
     console.log(`PORT: ${PORT}`)
