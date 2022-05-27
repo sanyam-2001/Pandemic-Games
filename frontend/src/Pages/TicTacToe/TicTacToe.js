@@ -116,10 +116,10 @@ const TicTacToe = (props) => {
                 }
                 setSelectedGlassIndex(-1);
             })
-            socket.on('returnToRoomFromTTT', ({ admin }) => {
-                if (admin) {
-                    setIsAdmin(true);
-                }
+            socket.on('returnToRoomFromTTT', () => {
+                // if (admin) {
+                //     setIsAdmin(true);
+                // }
                 setRedirect(true)
             });
         }
