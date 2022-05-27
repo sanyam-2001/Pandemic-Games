@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
         });
         socket.on('disconnect', ()=>{
             handleDisconnect(io, socket, roomID, username);
-        })
+        });
     });
 });
 
@@ -112,11 +112,11 @@ app.use('/', roomRoutes);
 app.use('/', tictactoeRoutes);
 app.use('/', psychRoutes);
 
-app.use(express.static(path.join(__dirname, 'frontend', 'build')));
+// app.use(express.static(path.join(__dirname, 'frontend', 'build')));
 
-app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'));
-});
+// app.get('*', (req, res) => {
+//     res.sendFile(path.resolve(__dirname, 'frontend', 'build', 'index.html'));
+// });
 
 server.listen(PORT, () => {
     console.log(`PORT: ${PORT}`)

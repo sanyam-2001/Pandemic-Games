@@ -1,5 +1,5 @@
 const psychModel = require('../../../Models/psychModel');
-
+const roomModel = require('../../../Models/roomModel');
 const handleDisconnect = async (io, socket, roomID, username) => {
     console.log(`${username} Left Psych Room`)
     const room = await psychModel.findOne({ roomID });
@@ -18,9 +18,26 @@ const handleDisconnect = async (io, socket, roomID, username) => {
         if (!hasAdmin) {
             newUserList[0].isAdmin = true;
         }
+
         io.in(roomID).emit('changeAdmin', { adminUsername: newAdmin })
         await psychModel.findOneAndUpdate({ roomID }, { users: newUserList, adminUsername: newAdmin });
         io.in(roomID).emit('userLeftPsychRoom', { newGameState: newUserList });
+        //Prematurely End Game
+        if(newUserList.length<=1){
+            const newRoom = new roomModel({
+                roomID : roomID,
+                users: [],
+                roomName: room.roomName,
+                adminUsername: room.adminUsername,
+                selectedGame: -1
+    
+            });
+            await newRoom.save();
+    
+            await psychModel.findOneAndDelete({roomID});
+            io.in(roomID).emit('returnToLobbyFromPsych');
+            return;
+        }
         let unvoted = 0, unguessed = 0;
         newUserList.forEach(user => {
             if (!user.prompt) unguessed++;
