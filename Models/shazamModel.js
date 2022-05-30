@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 
 const userSchema = mongoose.Schema({
-    username: { type: String, required: true, unique: true },
+    username: { type: String, required: true, },
     isAdmin: { type: Boolean },
     score: { type: Number }
 });
 
 const shazamSchema = mongoose.Schema({
     roomID: { type: String, required: true, unique: true },
-    users: { type: [userSchema], unique: true },
+    users: { type: [userSchema], },
     roomName: { type: String, required: true },
     adminUsername: { type: String },
     playListUrl: { type: String },
