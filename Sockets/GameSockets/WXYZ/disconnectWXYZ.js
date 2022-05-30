@@ -3,39 +3,40 @@ const turnWXYZ = require("./turnWXYZ");
 const disconnectWxyz = async (io,username, roomID, socket) => {
   const room = await wxyzModel.findOne({ roomID });
   if (room) {
-    const newUserList = room.users.filter((user) => user.username !== username);
-    var pos;
+    var pos,newAdminPos,oldAdmin=room.adminUsername,newAdmin,hasAdmin=false;
     var exist=[];
-    room.users.map((user,ind)=>{
-      if(user.username===username){
-        pos=ind;
+
+    for(let i=0;i<room.users.length;i++){
+      if(room.users[i].username===username){
+        pos=i;
       }
-      if(user.username!==username && user.lives>0){
-        exist.push(ind);
+      if(room.users[i].username!==username && room.users[i].lives>0){
+        exist.push(i);
       }
-    });
+      if(room.users[i].username===oldAdmin){
+        newAdminPos=i;
+      }
+    }
+    console.log(exist.length);
     if(exist.length===1){
       console.log("ek banda bacha hai");
       socket.to(roomID).emit("WXYZwinner", {winner:exist[0]});
     }
     console.log("bye");
-    var hasAdmin = false;
-    var newAdmin;
 
-    if(!newUserList[0])return;
+    if(exist.length===0)return;
 
-    newUserList.forEach((user) => {
-      if (user.isAdmin) {
-        hasAdmin = true;
-        newAdmin=user.username;
-      }
-    });
+    if(oldAdmin!==username){
+      hasAdmin=true;
+      newAdmin=oldAdmin;
+    }
 
     //Make New Admin
     if(!hasAdmin){
       console.log("admin gaya")
-      newAdmin=newUserList[0].username;
-      newUserList[0].isAdmin = true;
+      newAdmin=room.users[exist[0]].username;
+      newAdminPos=exist[0];
+      room.users[exist[0]].isAdmin = true;
       await wxyzModel.findOneAndUpdate({roomID, "users.username":newAdmin},
       {$set: {"users.$.isAdmin": true}})
 
@@ -43,13 +44,6 @@ const disconnectWxyz = async (io,username, roomID, socket) => {
       {$set: {"users.$.isAdmin": false}})
       console.log("admin gaya aur change kardiya")
     }
-    
-    var newAdminPos;
-    room.users.map((user,i)=>{
-      if(user.username===newAdmin){
-        newAdminPos=i;
-      }
-    })
 
     console.log("hello");
     socket.to(roomID).emit("changeWxyzAdmin", {

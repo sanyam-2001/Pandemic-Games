@@ -27,8 +27,9 @@ const Wxyz = (props) => {
   const [wordList, setWordList] = useState([]);
   const [str, setStr] = useState("");
   const [inputWord, setInputWord] = useState("");
+  const[winner1,setWinner]=useState(-1);
   const finalWinner = useRef(null);
-  let winner = useRef(null);
+  let winner = useRef(-1);
   let ans = useRef(false);
   let myPosition = useRef(null);
   const circle = useRef(null);
@@ -99,21 +100,14 @@ const Wxyz = (props) => {
       socket.on("chatMessage", (payload) =>
         setMessages((prev) => [...prev, payload])
       );
-
-      // socket.on('returnToRoomFromWXYZ', ({ admin }) => {
-      //   if (admin) {
-      //       setIsAdmin(true);
-      //   }
-      //   setRedirect(true)
-      // });
     }
   }, [props.location.state.username, socket, username]);
 
   useEffect(() => {
     if (socket && userArr.current) {
       socket.on("WXYZTurn",async(res) => {
-        if(isAdmin)
-          startButton.current.style.display='none';
+        startButton.current.style.display="none";
+        startButton.current.style.visibility="hidden";
         ans.current = false;
         setCurrentUser(userArr.current[res.position].username);
         // console.log(res.position, myPosition.current, "dono");
@@ -145,7 +139,8 @@ const Wxyz = (props) => {
           }
           if (i !== -1) return i;
           else {
-            if (isAdmin) {
+            console.log("admin bana ya nhi",userArr.current[myPosition.current].isAdmin)
+            if (userArr.current[myPosition.current].isAdmin) {
               console.log("admin ne result bheja");
               console.log(res.position);
               socket.emit("WXYZwinner", {winner:res.position});
@@ -175,9 +170,10 @@ const Wxyz = (props) => {
         } else {
           setTimeout(() => {
             console.log(winner.current, "winner");
+            console.log(winner1,"winner");
           }, 500);
         }
-      });
+      },[isAdmin]);
 
       socket.on("WXYZReduceLives", (res) => {
         userArr.current[res.pos].lives -= 1;
@@ -214,6 +210,7 @@ const Wxyz = (props) => {
           console.log(res);
           finalWinner.current.style.visibility = "visible";
           winner.current = res.winner;
+          setWinner(res.winner);
         });
       },2000)
   }}, [socket]);
@@ -222,18 +219,20 @@ const Wxyz = (props) => {
   useEffect(() => {
     if (socket) {
       socket.on("changeWxyzAdmin", ({ adminUsername, leftUsername }) => {
+        startButton.current.style.display="none";
+        startButton.current.style.visibility="hidden";
         console.log(adminUsername, leftUsername);
         console.log(username,userArr.current[adminUsername].username);
         if(userArr.current[adminUsername].username===username){
           console.log("yeh madarchod naya admin bana hai", username);
           setIsAdmin(true);
         }
-  
+        userArr.current[adminUsername].isAdmin=true;
         userArr.current[leftUsername].lives=0;
         console.log("woww");
       });
   }
-}, [socket]);
+}, [socket,isAdmin]);
 
 
   useEffect(() => {
@@ -256,15 +255,6 @@ const Wxyz = (props) => {
     }
   }, [users]);
 
-  // const resize=()=>{
-  //   setHeightCircle(circle.current.offsetWidth);
-  //   setLocateX(circle.current.offsetWidth);
-  //   setLocateY(circle.current.offsetWidth/2)
-  // }
-
-  // window.onresize=resize;
-
-  // console.log(myTurn, username);
 
   const endTimeOutRotation = () => {
     console.log("hello");
@@ -335,7 +325,7 @@ const Wxyz = (props) => {
           state: {
             roomID: props.location.state.roomID,
             username: props.location.state.username,
-            isAdmin: isAdmin,
+            isAdmin: userArr.current[myPosition.current].isAdmin,
           },
         }}
       />
@@ -347,7 +337,7 @@ const Wxyz = (props) => {
     <div className={styles.mainwxyz}>
       <div className={styles.winnerArea} ref={finalWinner}>
         {
-          winner.current && 
+          winner1!==-1 &&
           <div className={styles.winner}>
             {userArr.current[winner.current].username} is the winner!
           </div>
@@ -366,11 +356,11 @@ const Wxyz = (props) => {
             <div className={styles.string}>{str}</div>
             <Arrow style={arrowRotation} />
           </div>
-          {userArr.current.map((i, index) => (
+          {users.map((i, index) => (
             <WxyzParticipant
               i={i}
+              id={index}
               key={index}
-              index={index}
               locateX={locateX}
               locateY={locateY}
             />
@@ -378,13 +368,14 @@ const Wxyz = (props) => {
         </div>
         <div className={styles.answerArea}>
           <div>
-              {isAdmin && <button
+              <button
+                style={{ display: !isAdmin &&'none' }}
                 className={styles.startButton}
                 onClick={startGame}
                 ref={startButton}
               >
                 Start Game
-              </button>}
+              </button>
           </div>
           <div>
             {myTurn ? (

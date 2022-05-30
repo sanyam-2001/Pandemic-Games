@@ -12,21 +12,21 @@ function WxyzParticipant(props) {
 
   const location = {
     position: "absolute",
-    left: props.locateX[props.index],
-    top: props.locateY[props.index],
+    left: props.locateX[props.id],
+    top: props.locateY[props.id],
     transform: "translate(-50%,-50%)",
   };
 
   return (
     <div style={location} className={styles.participantSpot}>
       <p style={{ textAlign: "center" }}>{props.i.username}</p>
-      {lives.slice(0, parseInt(props.i.lives)).map((i) => (
-        <span style={{ color: "orange", fontSize: "20px", margin: "0 3px" }}>
+      {lives.slice(0, parseInt(props.i.lives)).map((i,ind) => (
+        <span key={ind} style={{ color: "orange", fontSize: "20px", margin: "0 3px" }}>
           {i}
         </span>
       ))}
-      {lives.slice(parseInt(props.i.lives), lives.length).map((i) => (
-        <span style={{ color: "grey", fontSize: "20px", margin: "0 3px" }}>
+      {lives.slice(parseInt(props.i.lives), lives.length).map((i,ind) => (
+        <span key={ind}style={{ color: "grey", fontSize: "20px", margin: "0 3px" }}>
           {i}
         </span>
       ))}
