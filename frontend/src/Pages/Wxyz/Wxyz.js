@@ -38,36 +38,40 @@ const Wxyz = (props) => {
   const currentPosition = useRef(null);
   const currentlivesChecker = useRef(null);
   useEffect(() => {
-    const socket = SocketIOClient("/");
-    setSocket(socket);
-    setUsername(props.location.state.username);
-    setIsAdmin(props.location.state.isAdmin);
-    setRoomID(props.location.state.roomID);
-    const payload = {
-      username: props.location.state.username,
-      isAdmin: props.location.state.isAdmin,
-      lives: 3,
-    };
-    POST(`/joinWXYZ/${props.location.state.roomID}`, payload).then((res) => {
-      setRoom(res.room);
-      setUsers(res.room.users);
-      userArr.current = res.room.users;
-      res.room.users.forEach((user, i) => {
-        if (user.username === props.location.state.username) {
-          myPosition.current = i;
-          // console.log("i1=" + i);
-        }
-      });
-      socket.emit("userJoinedWXYZ", {
-        users: res.room.users,
-        username: props.location.state.username,
-        roomID: props.location.state.roomID,
-      });
-    });
-
-    GET("/wordList").then((res) => {
-      setWordList(res.wordList);
-    });
+    const data=async()=>{ 
+        const socket = SocketIOClient("/");
+        setSocket(socket);
+        setUsername(props.location.state.username);
+        setIsAdmin(props.location.state.isAdmin);
+        setRoomID(props.location.state.roomID);
+        const payload = {
+          username: props.location.state.username,
+          isAdmin: props.location.state.isAdmin,
+          lives: 3,
+          isTurn:false,
+        };
+        await POST(`/joinWXYZ/${props.location.state.roomID}`, payload).then((res) => {
+          setRoom(res.room);
+          setUsers(res.room.users);
+          userArr.current = res.room.users;
+          res.room.users.forEach((user, i) => {
+            if (user.username === props.location.state.username) {
+              myPosition.current = i;
+              // console.log("i1=" + i);
+            }
+          });
+          socket.emit("userJoinedWXYZ", {
+            users: res.room.users,
+            username: props.location.state.username,
+            roomID: props.location.state.roomID,
+          });
+        });
+      
+        await GET("/wordList").then((res) => {
+          setWordList(res.wordList);
+        });
+    }
+    data();
   }, [
     props.location.state.username,
     props.location.state.isAdmin,
@@ -107,17 +111,20 @@ const Wxyz = (props) => {
 
   useEffect(() => {
     if (socket && userArr.current) {
-      socket.on("WXYZTurn", (res) => {
+      socket.on("WXYZTurn",async(res) => {
+        if(isAdmin)
+          startButton.current.style.display='none';
         ans.current = false;
         setCurrentUser(userArr.current[res.position].username);
         // console.log(res.position, myPosition.current, "dono");
         if (res.position === myPosition.current) {
           setMyTurn(true);
-          GET("/wordStr").then((res) => {
+          await GET("/wordStr").then((res) => {
             // console.log(res.str);
             socket.emit("WXYZstr", res.str);
           });
         }
+
         const livesChecker = () => {
           let i = 1;
           while (userArr.current[res.position].lives) {
@@ -129,9 +136,6 @@ const Wxyz = (props) => {
                 (res.position + i) % userArr.current.length ===
                 res.position
               ) {
-                if (isAdmin) {
-                  socket.emit("WXYZwinner", res.position);
-                }
                 i = -1;
               }
               break;
@@ -141,24 +145,30 @@ const Wxyz = (props) => {
           }
           if (i !== -1) return i;
           else {
-            // console.log("chicken dinner");
+            if (isAdmin) {
+              console.log("admin ne result bheja");
+              console.log(res.position);
+              socket.emit("WXYZwinner", {winner:res.position});
+            }
+            console.log("chicken dinner");
             return -1;
           }
         };
+
         currentPosition.current = res.position;
         currentlivesChecker.current = livesChecker();
-        if (livesChecker() !== -1) {
+        if (livesChecker()!== -1) {
           timer.current = setTimeout(() => {
             if (res.position === myPosition.current) {
               socket.emit("WXYZwrongAnswerRotate", currentlivesChecker.current);
               if (!ans.current) {
-                socket.emit("WXYZReduceLives", res.position);
+                const lives=userArr.current[res.position].lives-1;
+                socket.emit("WXYZReduceLives", {pos:res.position,lives:lives});
               }
               setMyTurn(false);
               socket.emit(
                 "WXYZTurn",
-                (res.position + currentlivesChecker.current) %
-                  userArr.current.length
+                {position:((res.position + currentlivesChecker.current)%userArr.current.length)}
               );
             }
           }, 5000);
@@ -170,7 +180,7 @@ const Wxyz = (props) => {
       });
 
       socket.on("WXYZReduceLives", (res) => {
-        userArr.current[res.pos].lives = userArr.current[res.pos].lives - 1;
+        userArr.current[res.pos].lives -= 1;
       });
 
       socket.on("WXYZstr", (res) => {
@@ -178,7 +188,7 @@ const Wxyz = (props) => {
       });
 
       socket.on("WXYZcorrectAnswerRotate", (res) => {
-        console.log(res.liveChecker, myPosition.current);
+        console.log("correct answer",res.liveChecker, myPosition.current);
         setDegree((prev) => {
           return (
             (prev + (res.liveChecker * 360) / userArr.current.length) % 360
@@ -192,94 +202,39 @@ const Wxyz = (props) => {
     if (socket) {
       socket.on("returnToRoomFromleaveWXYZ", () => {
         socket.disconnect();
-        setRedirect(true);
+        setRedirect(true) 
       });
     }
   }, [socket]);
 
   useEffect(() => {
     if (socket) {
-      socket.on("WXYZwinner", (res) => {
-        // console.log(res.winner + " return winner");
-        finalWinner.current.style.visibility = "visible";
-        winner.current = res.winner;
-        // if (isAdmin) {
-        //   const leave = setTimeout(leaveWXYZ, 5000);
-        //   console.log(leave, "hello paaji");
-        // }
-      });
-    }
-  }, [socket, isAdmin]);
+      setTimeout(()=>{
+        socket.on("WXYZwinner", (res) => {
+          console.log(res);
+          finalWinner.current.style.visibility = "visible";
+          winner.current = res.winner;
+        });
+      },2000)
+  }}, [socket]);
+
 
   useEffect(() => {
     if (socket) {
       socket.on("changeWxyzAdmin", ({ adminUsername, leftUsername }) => {
-        let leftPosition = -1;
-        userArr.current.forEach((user, i) => {
-          if (user.username === leftUsername) {
-            leftPosition = i;
-          }
-        });
-        console.log(leftPosition);
-        if (leftPosition !== -1) {
-          userArr.current[leftPosition].lives = 0;
-        }
-        console.log("check kar raha hun");
-        console.log(currentPosition.current, leftPosition);
-        // if (currentPosition.current === leftPosition) {
-        //   clearTimeout(timer.current);
-        //   socket.emit("WXYZcorrectAnswerRotate", currentlivesChecker.current);
-        //   setMyTurn(false);
-        //   socket.emit(
-        //     "WXYZTurn",
-        //     (currentPosition.current + currentlivesChecker.current) %
-        //       userArr.current.length
-        //   );
-        // }
-        console.log(
-          "uski lives zero hai bhi ya nhi",
-          userArr.current[leftPosition].lives
-        );
-        if (
-          userArr.current[currentPosition.current].username === adminUsername
-        ) {
-          console.log("mai admin hun", adminUsername);
+        console.log(adminUsername, leftUsername);
+        console.log(username,userArr.current[adminUsername].username);
+        if(userArr.current[adminUsername].username===username){
+          console.log("yeh madarchod naya admin bana hai", username);
           setIsAdmin(true);
         }
-        const livesChecker = () => {
-          let i = 1;
-          while (userArr.current[leftPosition].lives) {
-            let livesCheck =
-              userArr.current[(leftPosition + i) % userArr.current.length]
-                .lives;
-            if (livesCheck > 0) {
-              if (
-                (leftPosition + i) % userArr.current.length ===
-                leftPosition
-              ) {
-                if (isAdmin) {
-                  socket.emit("WXYZwinner", leftPosition);
-                }
-                i = -1;
-              }
-              break;
-            } else {
-              i++;
-            }
-          }
-          if (i !== -1) return i;
-          else {
-            // console.log("chicken dinner");
-            return -1;
-          }
-        };
-        console.log(currentPosition.current + livesChecker(), leftPosition);
-        if (currentPosition.current + livesChecker() === leftPosition) {
-          currentlivesChecker.current += livesChecker();
-        }
+  
+        userArr.current[leftUsername].lives=0;
+        console.log("woww");
       });
-    }
-  }, [socket, isAdmin]);
+  }
+}, [socket]);
+
 
   useEffect(() => {
     setHeightCircle(circle.current.offsetWidth);
@@ -317,14 +272,12 @@ const Wxyz = (props) => {
     setMyTurn(false);
     socket.emit(
       "WXYZTurn",
-      (currentPosition.current + currentlivesChecker.current) %
-        userArr.current.length
+      {position:((currentPosition.current + currentlivesChecker.current)%userArr.current.length)}
     );
   };
 
   const startGame = () => {
     socket.emit("startWXYZ");
-    startButton.current.style.visibility = "hidden";
   };
 
   //SEARCHING THROUGH wordList Array
@@ -365,11 +318,11 @@ const Wxyz = (props) => {
     transform: `rotateZ(${degree}deg)`,
   };
 
-  const leaveWXYZ = () => {
-    GET(`/leaveWXYZ/${props.location.state.roomID}`).then((res) => {
+  const leaveWXYZ = async() => {
+    await GET(`/leaveWXYZ/${props.location.state.roomID}`).then((res) => {
       console.log(res);
       if (res.code === 200) {
-        socket.emit("returnToRoomFromleaveWXYZ");
+        socket.emit("returnToRoomFromleaveWXYZ")
       }
     });
   };
@@ -393,10 +346,12 @@ const Wxyz = (props) => {
   return (
     <div className={styles.mainwxyz}>
       <div className={styles.winnerArea} ref={finalWinner}>
-        <div className={styles.winner}>
-          {winner.current ? userArr.current[winner.current].username : null} is
-          the winner!
-        </div>
+        {
+          winner.current && 
+          <div className={styles.winner}>
+            {userArr.current[winner.current].username} is the winner!
+          </div>
+        }
         <div>
           {isAdmin && (
             <button className={styles.leaveButton} onClick={leaveWXYZ}>
@@ -423,15 +378,13 @@ const Wxyz = (props) => {
         </div>
         <div className={styles.answerArea}>
           <div>
-            {isAdmin && (
-              <button
+              {isAdmin && <button
                 className={styles.startButton}
                 onClick={startGame}
                 ref={startButton}
               >
                 Start Game
-              </button>
-            )}
+              </button>}
           </div>
           <div>
             {myTurn ? (

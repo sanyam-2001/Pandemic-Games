@@ -4,6 +4,7 @@ const userSchema = mongoose.Schema({
   username: { type: String },
   isAdmin: { type: Boolean },
   lives: { type: Number },
+  isTurn: { type: Boolean },
 });
 
 const wxyzSchema = mongoose.Schema({
@@ -12,7 +13,6 @@ const wxyzSchema = mongoose.Schema({
   roomName: { type: String, required: true },
   adminUsername: { type: String },
   numberOfRounds: { type: Number },
-  isTurn: { type: String },
 });
 
 const wxyzModel = new mongoose.model("wxyzModel", wxyzSchema);

@@ -14,6 +14,8 @@ const leaveRoom = require("./Sockets/LobbySockets/leaveRoom");
 const handleTTTMove = require("./Sockets/GameSockets/TTT/handleTTTMove");
 const disconnectTTT = require("./Sockets/GameSockets/TTT/disconnectTTT");
 const disconnectWXYZ = require("./Sockets/GameSockets/WXYZ/disconnectWXYZ");
+const turnWXYZ= require("./Sockets/GameSockets/WXYZ/turnWXYZ");
+const changeLivesWXYZ = require("./Sockets/GameSockets/WXYZ/changeLivesWXYZ");
 
 //DB Connection
 mongoose.connect(
@@ -32,8 +34,11 @@ mongoose.connect(
 //Server Setup
 const app = express();
 const server = http.createServer(app);
-const io = socketio(server);
-const PORT = process.env.PORT || 5000;
+const io = socketio(server,{
+  pingTimeout:500,
+  pingInterval:1000
+});
+const PORT = process.env.PORT || 8000;
 
 //Global Middlewares
 app.use(express.json());
@@ -97,30 +102,28 @@ io.on("connection", (socket) => {
     );
   });
 
-  socket.on("userJoinedWXYZ", ({ users, roomID, username }) => {
+  socket.on("userJoinedWXYZ",({ users, roomID, username }) => {
+    console.log(users);
     socket.join(roomID);
     console.log(`${socket.id} Joined WXYZ`);
     socket.to(roomID).emit("userJoinedWXYZ", { users, username });
     socket.on("chatMessage", (payload) =>
       io.in(roomID).emit("chatMessage", payload)
     );
-    socket.on("disconnect", () => {
-      disconnectWXYZ(username, roomID, socket);
-    });
     socket.on("returnToRoomFromWXYZ", () =>
       io.in(roomID).emit("returnToRoomFromWXYZ")
     );
-    socket.on("startWXYZ", () =>
-      io.in(roomID).emit("WXYZTurn", { position: 0 })
-    );
-    socket.on("WXYZTurn", (res) => {
-      io.in(roomID).emit("WXYZTurn", { position: res });
+    socket.on("startWXYZ", () =>{
+      turnWXYZ(io,{position:0},username,roomID);
+    });
+    socket.on("WXYZTurn",(res) => {
+      turnWXYZ(io,res,username,roomID);
     });
     socket.on("WXYZstr", (res) => {
       io.in(roomID).emit("WXYZstr", { str: res });
     });
-    socket.on("WXYZReduceLives", (res) => {
-      io.in(roomID).emit("WXYZReduceLives", { pos: res });
+    socket.on("WXYZReduceLives",(res) => {
+      changeLivesWXYZ(io,res,username,roomID);
     });
     socket.on("WXYZcorrectAnswerRotate", (res) => {
       io.in(roomID).emit("WXYZcorrectAnswerRotate", { liveChecker: res });
@@ -129,13 +132,13 @@ io.on("connection", (socket) => {
       io.in(roomID).emit("WXYZcorrectAnswerRotate", { liveChecker: res });
     });
     socket.on("WXYZwinner", (res) => {
-      io.in(roomID).emit("WXYZwinner", { winner: res });
+      io.in(roomID).emit("WXYZwinner", res);
     });
     socket.on("returnToRoomFromleaveWXYZ", () =>
       io.in(roomID).emit("returnToRoomFromleaveWXYZ")
     );
     socket.on("disconnect", () => {
-      disconnectWXYZ(username, roomID, socket, io);
+      disconnectWXYZ(io,username, roomID, socket);
     });
   });
 });
@@ -156,11 +159,11 @@ app.use("/", roomRoutes);
 app.use("/", tictactoeRoutes);
 app.use("/", wxyzRoutes);
 
-app.use(express.static(path.join(__dirname, "frontend", "build")));
+// app.use(express.static(path.join(__dirname, "frontend", "build")));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "frontend", "build", "index.html"));
-});
+// app.get("*", (req, res) => {
+//   res.sendFile(path.resolve(__dirname, "frontend", "build", "index.html"));
+// });
 
 server.listen(PORT, () => {
   console.log(`PORT: ${PORT}`);
