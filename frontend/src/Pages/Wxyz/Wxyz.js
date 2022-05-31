@@ -291,7 +291,7 @@ const Wxyz = (props) => {
     margin: "12%",
     height: heightCircle,
     position: "relative",
-    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)), url(${WxyzBI})`,
+    backgroundImage: `linear-gradient(rgb(222 0 0 / 10%), rgb(4 0 3 / 10%)),url(${WxyzBI})`,
   };
 
   const arrowStyles = {
