@@ -17,12 +17,10 @@ const disconnectWxyz = async (io,username, roomID, socket) => {
         newAdminPos=i;
       }
     }
-    console.log(exist.length);
+    
     if(exist.length===1){
-      console.log("ek banda bacha hai");
       socket.to(roomID).emit("WXYZwinner", {winner:exist[0]});
     }
-    console.log("bye");
 
     if(exist.length===0)return;
 
@@ -33,7 +31,6 @@ const disconnectWxyz = async (io,username, roomID, socket) => {
 
     //Make New Admin
     if(!hasAdmin){
-      console.log("admin gaya")
       newAdmin=room.users[exist[0]].username;
       newAdminPos=exist[0];
       room.users[exist[0]].isAdmin = true;
@@ -42,10 +39,8 @@ const disconnectWxyz = async (io,username, roomID, socket) => {
 
       await wxyzModel.findOneAndUpdate({roomID, "users.username":username},
       {$set: {"users.$.isAdmin": false}})
-      console.log("admin gaya aur change kardiya")
     }
 
-    console.log("hello");
     socket.to(roomID).emit("changeWxyzAdmin", {
       adminUsername: newAdminPos,
       leftUsername: pos,
@@ -83,7 +78,6 @@ const disconnectWxyz = async (io,username, roomID, socket) => {
         const res={
           position: ((pos + i)%room.users.length) 
         }
-        console.log(i,"left user")
         socket.to(roomID).emit("WXYZcorrectAnswerRotate",{liveChecker:i});
         turnWXYZ(io,res,username,roomID);
       }},3000)
