@@ -58,6 +58,7 @@ const Home = () => {
             selectedGame: -1
         }
         const response = await POST('/createRoom', payload);
+        console.log(response);
         if (response.code === 200) {
             setReceivedRoomID(response.room.roomID);
             setRedirect('CREATE');

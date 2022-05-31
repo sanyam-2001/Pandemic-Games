@@ -99,6 +99,10 @@ const Lobby = (props) => {
                 socket.disconnect();
                 setRedirect('psych');
             })
+            socket.on('WXYZStart',()=>{
+                socket.disconnect();
+                setRedirect('wxyz');
+            })
             return () => {
                 setSocket(null);
                 setUsername('');
